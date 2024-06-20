@@ -1,11 +1,12 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.154.0/build/three.min.js';
 import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.154.0/examples/jsm/loaders/GLTFLoader.js";
-let loader = new GLTFLoader();
-let sleighModel;
-loader.load("./assets/player.glb", (gltf) => {
-  sleighModel = gltf.scene;
-  console.log("sleighModel",sleighModel);
-});
+
+// let sleighModel;
+// let loader = new GLTFLoader();
+// loader.load("./assets/player.glb", (gltf) => {
+//   sleighModel = gltf.scene;
+//   console.log("sleighModel",sleighModel);
+// });
 export class Game {
     constructor() {
         this.speed = 0.2;
@@ -189,12 +190,12 @@ export class Game {
 
     }
     addPlayer() {
-        // console.log("sleighModel",sleighModel);
-        // const playerGeometry = new THREE.BoxGeometry(1, 1, 1);
-        // const playerMaterial = new THREE.MeshStandardMaterial({ color: 'red' });
-        // this.player = new THREE.Mesh(playerGeometry, playerMaterial);
-        sleighModel.scale.set(0.5,0.5,0.5);
-        this.player=sleighModel
+
+        const playerGeometry = new THREE.BoxGeometry(1, 1, 1);
+        const playerMaterial = new THREE.MeshStandardMaterial({ color: 'red' });
+        this.player = new THREE.Mesh(playerGeometry, playerMaterial);
+        // sleighModel.scale.set(0.5,0.5,0.5);
+        // this.player=sleighModel;
         this.GameObj.add(this.player);
         this.particles = this.makeParticles();
         this.particles.position.z = 51;
