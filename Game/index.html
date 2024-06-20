@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>CatchMe</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <script src="https://hammerjs.github.io/dist/hammer.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #f0f0f0;
+        }
+
+        .popup {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .popup-content {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .popup-content h2 {
+            margin-top: 0;
+        }
+
+        .popup-content p {
+            margin: 20px 0;
+        }
+
+        .popup-content button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .popup-content button:hover {
+            background-color: #45a049;
+        }
+
+        #score {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            font-size: 24px;
+            font-family: Arial, sans-serif;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        #restart {
+            position: absolute;
+            top: 500px;
+            left: 500px;
+            padding: 10px 20px;
+            font-size: 18px;
+            cursor: pointer;
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="container" style="height: 100vh;width: 100%;"></div>
+    <div id="score">Score: 0</div>
+    <div id="restart">Restart</div>
+    <div id="popup" class="popup">
+        <div class="popup-content">
+            <h2>Welcome to the Game!</h2>
+            <p>Are you ready to start the game?</p>
+            <button id="startButton">Start Game</button>
+        </div>
+    </div>
+    <div id="repopup" class="popup" style="visibility: hidden;">
+        <div class="popup-content">
+            <h2>Restart to the Game!</h2>
+            <p>Are you ready to restart the game?</p>
+            <button id="restartButton">Try Again</button>
+        </div>
+    </div>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "../node_modules/three/build/three.module.js",
+                "three/addons/": "../node_modules/three/examples/jsm/"
+            }
+        }
+    </script>
+    <!-- <script src="./main.js" type="module"></script> -->
+    <script type="module">
+        import { Game } from './logic.js';
+        document.getElementById('startButton').addEventListener('click', function () {
+            window.game = new Game();
+            window.game.start();
+            document.getElementById('popup').style.display = 'none';
+        })
+        document.getElementById('restartButton').addEventListener('click', function () {
+            document.getElementById('container').innerHTML = '';
+            window.game = new Game();
+            window.game.start();
+            document.getElementById('repopup').style.visibility = 'hidden';
+        })
+
+    </script>
+    <!-- <script>
+        document.addEventListener("touchstart", handleTouchStart, false);
+        document.addEventListener("touchmove", handleTouchMove, false);
+
+        var xDown = null;
+        var yDown = null;
+
+        function handleTouchStart(event){
+            xDown = event.touches[0].clientX;
+            yDown = event.touches[0].clientY;
+        }
+
+        function handleTouchMove(event) {
+            if (!xDown || !yDown) {
+                return;
+            }
+
+            var xUp = event.touches[0].clientX;
+            var yUp = event.touches[0].clientY;
+            var xDiff = xDown - xUp;
+            var yDiff = yDown - yUp;
+
+            if (Math.abs(xDiff) > Math.abs(yDiff)) {
+                // Horizontal swipe
+                if (xDiff > 0) {
+                    // Left swipe
+                    window.game.handleSwipe('left');
+                } else {
+                    // Right swipe
+                    window.game.handleSwipe('right');
+                }
+            } else {
+                // Vertical swipe
+                if (yDiff > 0) {
+                    // Up swipe
+                    window.game.handleSwipe('jump');
+                } else {
+                    // Down swipe
+                }
+            }
+
+            // Reset touch start coordinates
+            xDown = null;
+            yDown = null;
+        }
+    </script> -->
+    <script>
+        // Swipe handling using Hammer.js
+        const hammer = new Hammer(document.body);
+        hammer.get('swipe').set({ direction: Hammer.DIRECTION_ALL });
+        hammer.on('swipeleft', () => {
+            window.game.handleSwipe('left');
+        });
+
+        hammer.on('swiperight', () => {
+            window.game.handleSwipe('right');
+        });
+        hammer.on('swipeup', () => {
+            window.game.handleSwipe('jump');
+        });
+
+        
+    </script>
+</body>
+
+</html>
