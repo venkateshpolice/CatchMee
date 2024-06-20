@@ -1,5 +1,4 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.154.0/build/three.min.js';
-import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.154.0/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.154.0/examples/jsm/loaders/GLTFLoader.js";
 let loader = new GLTFLoader();
 let sleighModel;
@@ -62,7 +61,6 @@ export class Game {
         container.appendChild(this.renderer.domElement);
 
         this.camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 100);
-        //this.controls = new OrbitControls(this.camera, this.renderer.domElement);
         this.GameObj = new THREE.Group();
         this.GameObj.rotation.y = 3.15;
         this.scene.add(this.GameObj);
