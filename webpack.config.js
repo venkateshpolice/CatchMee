@@ -57,7 +57,3 @@ module.exports = () => {
   }
   return config;
 };
-
-
-//git cre
-//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
