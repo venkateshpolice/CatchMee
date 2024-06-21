@@ -13,7 +13,7 @@ const config = {
 
   },
   output: {
-    path: __dirname + "/build/",
+    path: __dirname + "/assets/",
   },
   devServer: {
     open: true,
