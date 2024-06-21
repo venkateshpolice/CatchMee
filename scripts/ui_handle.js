@@ -12,16 +12,19 @@ document.getElementById('restartButton').addEventListener('click', function () {
     document.getElementById('repopup').style.visibility = 'hidden';
 });
 // Swipe handling using Hammer.js
-const hammer = new Hammer(document.body);
-hammer.get('swipe').set({ direction: Hammer.DIRECTION_ALL });
-hammer.on('swipeleft', () => {
+const hammerPan = new Hammer(document.body);
+hammerPan.get('pan').set({ direction: Hammer.DIRECTION_ALL });
+hammerPan.on('panleft', () => {
     window.game.handleSwipe('left');
 });
 
-hammer.on('swiperight', () => {
+hammerPan.on('panright', () => {
     window.game.handleSwipe('right');
 });
-hammer.on('swipeup', () => {
+
+const hammerSwipe = new Hammer(document.body);
+hammerSwipe.get('swipe').set({ direction: Hammer.DIRECTION_ALL });
+hammerSwipe.on('swipeup', () => {
     window.game.handleSwipe('jump');
 });
 

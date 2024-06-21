@@ -1,12 +1,16 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { gsap } from 'gsap';
 let loader = new GLTFLoader();
 let sleighModel;
 loader.load("./assets/player.glb", (gltf) => {
-  sleighModel = gltf.scene;
-  document.getElementById('startButton').textContent='Start Game';
-  document.getElementById('startButton').disabled=false;
+    sleighModel = gltf.scene;
+    sleighModel.traverse(function (child) {
+        child.castShadow=true;
+    });
+    document.getElementById('startButton').textContent = 'Start Game';
+    document.getElementById('startButton').disabled = false;
 });
 export class Game {
     constructor() {
@@ -71,14 +75,14 @@ export class Game {
         this.addPlayer();
         this.addRoad();
         this.placeObstacles(10);
-        this.placeEnimies(5);
+        this.placeEnimies(7);
 
 
 
     }
     animate() {
         this.renderer.setAnimationLoop(this.animate.bind(this));
-        this.movePlayer();
+        this.reGenerate();
         this.checkCollision();
         //this.updateCamera();
         this.particles.rotation.x -= 0.005;
@@ -109,10 +113,10 @@ export class Game {
     }
     handleSwipe(event) {
         if (event == 'left') {
-            this.player.position.x -= 1.5;
+            this.movePlayer('left');
         }
         else if (event == 'right') {
-            this.player.position.x += 1.5;
+            this.movePlayer('right')
         }
 
         else if (event == 'jump') {
@@ -123,8 +127,22 @@ export class Game {
         }
 
     }
+    movePlayer(direction) {
+        const distance = 0.5; // Distance to move
+        const duration = 0.5; // Duration of the animation in seconds
+        let rotVal = this.player.rotation.y - 0.1;
+        if (direction == 'left')
+            rotVal = this.player.rotation.y + 0.1
+        let targetPosition = this.player.position.x + (direction === 'left' ? -distance : distance);
+        if(targetPosition>=3)
+            targetPosition=3;
+        if(targetPosition<=-3)
+            targetPosition=-3;
+        gsap.to(this.player.position, { x: targetPosition, duration: duration, ease: 'power1.out' });
+        //gsap.to(this.player.rotation, {y: rotVal, duration: duration, ease: 'power1.out',onComplete:()=>{this.player.rotation.y =3.14}});
+    }
     // Move the player forward
-    movePlayer() {
+    reGenerate() {
         //player.position.z += speed; // Move the player forward along the z-axis
         //this.road.position.z -= this.speed; // Move the road backward along the z-axis
         for (let i = 0; i < this.roadSegments.length; i++) {
@@ -141,8 +159,8 @@ export class Game {
 
             // Reposition obstacles if it goes behind the camera
             if (this.randomObstacles[i].position.z < this.camera.position.z) {
-                this.randomObstacles[i].position.z += this.roadSegmentHeight+this.getRandomInRange(1,20);
-                console.log("random",this.roadSegmentHeight+this.getRandomInRange(1,20));
+                this.randomObstacles[i].position.z += this.roadSegmentHeight + this.getRandomInRange(1, 20);
+                
             }
         }
 
@@ -160,7 +178,7 @@ export class Game {
                 if (this.randomObstacles[i].userData.type == 'obstacle') {
                     this.randomObstacles[i].position.z += this.roadSegmentHeight;
                     document.getElementById('score').textContent = 'Score:' + this.score++;
-                    console.log("hit done");
+                  
                 }
                 else if (this.randomObstacles[i].userData.type == 'enimy') {
                     this.randomObstacles[i].position.z += this.roadSegmentHeight;
@@ -175,17 +193,17 @@ export class Game {
         }
     }
     addLights() {
-        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x8d8d8d, 3);
+        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x8d8d8d, 5);
         hemiLight.position.set(0, 20, 0);
         this.GameObj.add(hemiLight);
 
-        const dirLight = new THREE.DirectionalLight(0xffffff, 3);
+        const dirLight = new THREE.DirectionalLight(0xffffff, 5);
         dirLight.position.set(3, 10, 10);
         dirLight.castShadow = true;
-        dirLight.shadow.camera.top = 2;
-        dirLight.shadow.camera.bottom = - 2;
-        dirLight.shadow.camera.left = - 2;
-        dirLight.shadow.camera.right = 2;
+        dirLight.shadow.camera.top = 50;
+        dirLight.shadow.camera.bottom = - 50;
+        dirLight.shadow.camera.left = - 10;
+        dirLight.shadow.camera.right = 10;
         dirLight.shadow.camera.near = 0.1;
         dirLight.shadow.camera.far = 40;
         this.GameObj.add(dirLight);
@@ -196,8 +214,10 @@ export class Game {
         // const playerGeometry = new THREE.BoxGeometry(1, 1, 1);
         // const playerMaterial = new THREE.MeshStandardMaterial({ color: 'red' });
         // this.player = new THREE.Mesh(playerGeometry, playerMaterial);
-        sleighModel.scale.set(0.5,0.5,0.5);
-        this.player=sleighModel
+        sleighModel.scale.set(0.6, 0.6, 0.6);
+        sleighModel.rotation.y=3.14;
+        sleighModel.castShadow=true;
+        this.player = sleighModel
         this.GameObj.add(this.player);
         this.particles = this.makeParticles();
         this.particles.position.z = 51;
@@ -216,10 +236,12 @@ export class Game {
         const texture = new THREE.TextureLoader().load('https://s3.ap-south-1.amazonaws.com/dev-plugxrassets/uploads/user_files/HJRJB1/road_dg546.jpg');
         for (let i = 0; i < this.numSegments; i++) {
             const geometry = new THREE.PlaneGeometry(this.roadSegmentWidth, this.roadSegmentHeight);
-            const material = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, map: texture,color:Math.random() * 0xffffff });
+            const material = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, map: texture, color: Math.random() * 0xffffff });
             const plane = new THREE.Mesh(geometry, material);
             plane.rotation.x = Math.PI / 2; // Rotate plane to be horizontal
             plane.position.z = -i * this.roadSegmentHeight;
+            plane.position.y=-0.1;
+            plane.receiveShadow=true;
             this.GameObj.add(plane);
             this.roadSegments.push(plane);
         }
@@ -259,12 +281,13 @@ export class Game {
     }
     getRandomInRange(min, max) {
         return Math.floor(Math.random() * (max - min + 2)) + min;
-        
+
     }
     createObstacle() {
         const geometry = new THREE.BoxGeometry(1, 1, 1);
         const material = new THREE.MeshStandardMaterial({ color: Math.random() * 0xffffff });
         const obstacle = new THREE.Mesh(geometry, material);
+        obstacle.castShadow=true;
         return obstacle;
     }
 
