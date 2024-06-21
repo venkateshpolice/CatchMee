@@ -5,7 +5,8 @@ let loader = new GLTFLoader();
 let sleighModel;
 loader.load("./assets/player.glb", (gltf) => {
   sleighModel = gltf.scene;
-  console.log("sleighModel",sleighModel);
+  document.getElementById('startButton').textContent='Start Game';
+  document.getElementById('startButton').disabled=false;
 });
 export class Game {
     constructor() {

@@ -95,7 +95,7 @@
         <div class="popup-content">
             <h2>Welcome to the Game!</h2>
             <p>Are you ready to start the game?</p>
-            <button id="startButton">Start Game</button>
+            <button id="startButton" disabled="true">Please Wait Loading</button>
         </div>
     </div>
     <div id="repopup" class="popup" style="visibility: hidden;">
@@ -105,7 +105,7 @@
             <button id="restartButton">Try Again</button>
         </div>
     </div>
-    <script type="importmap">
+    <!-- <script type="importmap">
         {
             "imports": {
                 "three": "./node_modules/three/build/three.module.js",
@@ -113,85 +113,8 @@
             }
         }
     </script>
-    <!-- <script src="./main.js" type="module"></script> -->
-    <script type="module">
-        import { Game } from './scripts/logic.js';
-        document.getElementById('startButton').addEventListener('click', function () {
-            window.game = new Game();
-            window.game.start();
-            document.getElementById('popup').style.display = 'none';
-        })
-        document.getElementById('restartButton').addEventListener('click', function () {
-            document.getElementById('container').innerHTML = '';
-            window.game = new Game();
-            window.game.start();
-            document.getElementById('repopup').style.visibility = 'hidden';
-        })
-
-    </script>
-    <!-- <script>
-        document.addEventListener("touchstart", handleTouchStart, false);
-        document.addEventListener("touchmove", handleTouchMove, false);
-
-        var xDown = null;
-        var yDown = null;
-
-        function handleTouchStart(event){
-            xDown = event.touches[0].clientX;
-            yDown = event.touches[0].clientY;
-        }
-
-        function handleTouchMove(event) {
-            if (!xDown || !yDown) {
-                return;
-            }
-
-            var xUp = event.touches[0].clientX;
-            var yUp = event.touches[0].clientY;
-            var xDiff = xDown - xUp;
-            var yDiff = yDown - yUp;
-
-            if (Math.abs(xDiff) > Math.abs(yDiff)) {
-                // Horizontal swipe
-                if (xDiff > 0) {
-                    // Left swipe
-                    window.game.handleSwipe('left');
-                } else {
-                    // Right swipe
-                    window.game.handleSwipe('right');
-                }
-            } else {
-                // Vertical swipe
-                if (yDiff > 0) {
-                    // Up swipe
-                    window.game.handleSwipe('jump');
-                } else {
-                    // Down swipe
-                }
-            }
-
-            // Reset touch start coordinates
-            xDown = null;
-            yDown = null;
-        }
-    </script> -->
-    <script>
-        // Swipe handling using Hammer.js
-        const hammer = new Hammer(document.body);
-        hammer.get('swipe').set({ direction: Hammer.DIRECTION_ALL });
-        hammer.on('swipeleft', () => {
-            window.game.handleSwipe('left');
-        });
-
-        hammer.on('swiperight', () => {
-            window.game.handleSwipe('right');
-        });
-        hammer.on('swipeup', () => {
-            window.game.handleSwipe('jump');
-        });
-
-        
-    </script>
+    <script src="./scripts/ui_handle.js" type="module"></script> -->
+    <script src="./build/game-build.js" type="module"></script>
 </body>
 
 </html>
