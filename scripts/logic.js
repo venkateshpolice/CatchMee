@@ -7,14 +7,14 @@ let sleighModel;
 loader.load("./assets/player.glb", (gltf) => {
     sleighModel = gltf.scene;
     sleighModel.traverse(function (child) {
-        child.castShadow=true;
+        child.castShadow = true;
     });
     document.getElementById('startButton').textContent = 'Start Game';
     document.getElementById('startButton').disabled = false;
 });
 export class Game {
     constructor() {
-        this.speed = 0.2;
+        this.speed = 0.5;
         this.jumpVelocity = 0.2;
         this.gravity = 0.01;
         this.isJumping = false;
@@ -22,17 +22,19 @@ export class Game {
         this.roadWidth = 10;
         this.roadLength = 100;
         this.randomObstacles = [];
-        this.roadSegmentWidth = 10;
+        this.roadSegmentWidth = 20;
         this.roadSegmentHeight = 100;
         this.numSegments = 3;
         this.roadSegments = [];
 
         let handleKeyDown = (event) => {
+            
+          
             if (event.keyCode == 37) {
-                this.player.position.x -= this.speed;
+                this.movePlayer('left');
             }
             else if (event.keyCode == 39) {
-                this.player.position.x += this.speed;
+                this.movePlayer('right');
             }
 
             else if (event.keyCode == 32) {
@@ -58,23 +60,26 @@ export class Game {
         this.clock = new THREE.Clock();
         this.scene = new THREE.Scene();
         this.scene.background = new THREE.Color('#050F26');
-        this.scene.fog = new THREE.Fog('#050F26', 30, 50);
+        this.scene.fog = new THREE.Fog('#050F26', 100, 150);
+        //this.scene.background=new THREE.TextureLoader().load('./assets/sky.jpg');
 
         this.renderer = new THREE.WebGLRenderer({ antialias: true });
         this.renderer.setPixelRatio(window.devicePixelRatio);
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.renderer.shadowMap.enabled = true;
+        this.renderer.outputColorSpace=THREE.SRGBColorSpace;
         container.appendChild(this.renderer.domElement);
 
-        this.camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 100);
+        this.camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 200);
         //this.controls = new OrbitControls(this.camera, this.renderer.domElement);
         this.GameObj = new THREE.Group();
-        this.GameObj.rotation.y = 3.15;
+        //this.GameObj.rotation.y = 3.15;
         this.scene.add(this.GameObj);
         this.addLights();
+        this.addMoon();
         this.addPlayer();
         this.addRoad();
-        this.placeObstacles(10);
+        this.placeObstacles(7);
         this.placeEnimies(7);
 
 
@@ -84,8 +89,7 @@ export class Game {
         this.renderer.setAnimationLoop(this.animate.bind(this));
         this.reGenerate();
         this.checkCollision();
-        //this.updateCamera();
-        this.particles.rotation.x -= 0.005;
+        this.particles.rotation.x += 0.005;
         if (this.isJumping) {
             this.player.position.y += this.velocityY;
             this.velocityY -= this.gravity;
@@ -106,11 +110,6 @@ export class Game {
     resetLevel() {
 
     }
-    updateCamera() {
-        //to follow the player camera 
-        //camera.position.copy(player.position).add(cameraOffset);
-        //camera.lookAt(cameraTarget);
-    }
     handleSwipe(event) {
         if (event == 'left') {
             this.movePlayer('left');
@@ -129,17 +128,14 @@ export class Game {
     }
     movePlayer(direction) {
         const distance = 0.5; // Distance to move
-        const duration = 0.5; // Duration of the animation in seconds
-        let rotVal = this.player.rotation.y - 0.1;
-        if (direction == 'left')
-            rotVal = this.player.rotation.y + 0.1
-        let targetPosition = this.player.position.x + (direction === 'left' ? -distance : distance);
-        if(targetPosition>=3)
-            targetPosition=3;
-        if(targetPosition<=-3)
-            targetPosition=-3;
+        const duration = 0.2; // Duration of the animation in seconds
+        let targetPosition = this.player.position.x + (direction === 'left' ? -distance : +distance);
+        if (targetPosition >= 3)
+            targetPosition = 3;
+        if (targetPosition <= -3)
+            targetPosition = -3;
         gsap.to(this.player.position, { x: targetPosition, duration: duration, ease: 'power1.out' });
-        //gsap.to(this.player.rotation, {y: rotVal, duration: duration, ease: 'power1.out',onComplete:()=>{this.player.rotation.y =3.14}});
+
     }
     // Move the player forward
     reGenerate() {
@@ -155,12 +151,13 @@ export class Game {
             }
         }
         for (let i = 0; i < this.randomObstacles.length; i++) {
-            this.randomObstacles[i].position.z -= this.speed; // Move segments forward
+            this.randomObstacles[i].position.z += this.speed; // Move segments forward
 
             // Reposition obstacles if it goes behind the camera
-            if (this.randomObstacles[i].position.z < this.camera.position.z) {
-                this.randomObstacles[i].position.z += this.roadSegmentHeight + this.getRandomInRange(1, 20);
-                
+            if (this.randomObstacles[i].position.z > this.camera.position.z) {
+                this.randomObstacles[i].position.z -= this.roadSegmentHeight + this.getRandomInRange(1, 20);
+                this.randomObstacles[i].position.x = this.getRandomInRange(-8, 8);
+
             }
         }
 
@@ -176,12 +173,14 @@ export class Game {
             let a = this.checkBox3(this.player, this.randomObstacles[i]);
             if (a) {
                 if (this.randomObstacles[i].userData.type == 'obstacle') {
-                    this.randomObstacles[i].position.z += this.roadSegmentHeight;
+                    this.speed+=0.05;
+                    this.randomObstacles[i].position.z -= this.roadSegmentHeight;
+                    this.randomObstacles[i].position.x = this.getRandomInRange(-8, 8);
                     document.getElementById('score').textContent = 'Score:' + this.score++;
-                  
+
                 }
                 else if (this.randomObstacles[i].userData.type == 'enimy') {
-                    this.randomObstacles[i].position.z += this.roadSegmentHeight;
+                    this.randomObstacles[i].position.z -= this.roadSegmentHeight;
                     this.stop();
                     document.getElementById('container').innerHTML = '';
                     document.getElementById('repopup').style.visibility = 'visible';
@@ -198,7 +197,7 @@ export class Game {
         this.GameObj.add(hemiLight);
 
         const dirLight = new THREE.DirectionalLight(0xffffff, 5);
-        dirLight.position.set(3, 10, 10);
+        dirLight.position.set(0, 10, -10);
         dirLight.castShadow = true;
         dirLight.shadow.camera.top = 50;
         dirLight.shadow.camera.bottom = - 50;
@@ -214,34 +213,47 @@ export class Game {
         // const playerGeometry = new THREE.BoxGeometry(1, 1, 1);
         // const playerMaterial = new THREE.MeshStandardMaterial({ color: 'red' });
         // this.player = new THREE.Mesh(playerGeometry, playerMaterial);
-        sleighModel.scale.set(0.6, 0.6, 0.6);
-        sleighModel.rotation.y=3.14;
-        sleighModel.castShadow=true;
+        sleighModel.scale.set(1, 1, 1);
+        sleighModel.rotation.y = 3.14;
+        sleighModel.castShadow = true;
         this.player = sleighModel
         this.GameObj.add(this.player);
         this.particles = this.makeParticles();
-        this.particles.position.z = 51;
+        this.particles.position.z = -100;
         this.scene.add(this.particles);
-        this.player.position.set(0, 0, 0);
+        this.player.position.set(0, 0, -5);
 
-
-        this.cameraOffset = new THREE.Vector3(0, 5, -10); // Offset camera position behind the player
+        //this.camera.position.set(0,5,5);
+        //this.camera.lookAt(this.scene.position)
+        this.cameraOffset = new THREE.Vector3(0, 5, 15); // Offset camera position behind the player
         //cameraTarget = new THREE.Vector3(0, 0, 0); // Look at the player's position
         this.camera.position.copy(this.player.position).add(this.cameraOffset);
-        this.camera.lookAt(this.player.position);
+        //this.camera.lookAt(this.player.position);
 
 
     }
+
+    addMoon = () => {
+        let moon = new THREE.Mesh(
+            new THREE.SphereGeometry(2, 30, 30),
+            new THREE.MeshStandardMaterial({ color: "white", emissiveIntensity: 10, emissiveColor: 'white' })
+        );
+        moon.position.x = -10;
+        moon.position.y = 18;
+        moon.position.z = -40;
+        this.scene.add(moon);
+    };
+
     addRoad() {
-        const texture = new THREE.TextureLoader().load('https://s3.ap-south-1.amazonaws.com/dev-plugxrassets/uploads/user_files/HJRJB1/road_dg546.jpg');
+        const texture = new THREE.TextureLoader().load('./assets/road.jpg');
         for (let i = 0; i < this.numSegments; i++) {
             const geometry = new THREE.PlaneGeometry(this.roadSegmentWidth, this.roadSegmentHeight);
             const material = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, map: texture, color: Math.random() * 0xffffff });
             const plane = new THREE.Mesh(geometry, material);
-            plane.rotation.x = Math.PI / 2; // Rotate plane to be horizontal
-            plane.position.z = -i * this.roadSegmentHeight;
-            plane.position.y=-0.1;
-            plane.receiveShadow=true;
+            plane.rotation.x = -Math.PI / 2; // Rotate plane to be horizontal
+            plane.position.z = i * this.roadSegmentHeight;
+            plane.position.y = -0.1;
+            plane.receiveShadow = true;
             this.GameObj.add(plane);
             this.roadSegments.push(plane);
         }
@@ -254,7 +266,7 @@ export class Game {
         for (let i = 0; i < count * 3; i++) {
             if (i % 3 == 0) {
                 // x
-                positions[i] = (Math.random() - 0.5) * 10;
+                positions[i] = (Math.random() - 0.5) * 100;
             }
             if (i % 3 == 1) {
                 // y
@@ -287,7 +299,7 @@ export class Game {
         const geometry = new THREE.BoxGeometry(1, 1, 1);
         const material = new THREE.MeshStandardMaterial({ color: Math.random() * 0xffffff });
         const obstacle = new THREE.Mesh(geometry, material);
-        obstacle.castShadow=true;
+        obstacle.castShadow = true;
         return obstacle;
     }
 
@@ -295,7 +307,7 @@ export class Game {
     placeObstacles(numberOfObstacles) {
         for (let i = 0; i < numberOfObstacles; i++) {
             const obstacle = this.createObstacle();
-            obstacle.position.set(this.getRandomInRange(-3, 3), 0, this.getRandomInRange(this.roadSegmentHeight / 4, this.roadSegmentHeight * 2));
+            obstacle.position.set(this.getRandomInRange(-8, 8), 0, -this.getRandomInRange(this.roadSegmentHeight, this.roadSegmentHeight*2));
             this.scene.add(obstacle);
             obstacle.userData.type = 'obstacle';
             this.randomObstacles.push(obstacle);
@@ -307,7 +319,7 @@ export class Game {
         for (let i = 0; i < numberOfObstacles; i++) {
             const obstacle = this.createObstacle();
             obstacle.material.color.setHex(0xFF0000)
-            obstacle.position.set(this.getRandomInRange(-3, 3), 0, this.getRandomInRange(this.roadSegmentHeight / 4, this.roadSegmentHeight * 2));
+            obstacle.position.set(this.getRandomInRange(-8, 8), 0, -this.getRandomInRange(this.roadSegmentHeight , this.roadSegmentHeight*2));
             obstacle.userData.type = 'enimy';
             this.scene.add(obstacle);
             this.randomObstacles.push(obstacle);
