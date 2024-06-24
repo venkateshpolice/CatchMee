@@ -2,20 +2,61 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { gsap } from 'gsap';
-let loader = new GLTFLoader();
-let sleighModel;
+
+let sleighModel, coinModel,drumModel,speedModel;
+const manager = new THREE.LoadingManager();
+manager.onStart = function (url, itemsLoaded, itemsTotal) {
+    //console.log('Started loading file: ' + url + '.\nLoaded ' + itemsLoaded + ' of ' + itemsTotal + ' files.');
+};
+
+manager.onLoad = function () {
+    console.log('Loading complete!');
+    document.getElementById('startButton').textContent = 'Start Game';
+    document.getElementById('startButton').disabled = false;
+};
+
+manager.onProgress = function (url, itemsLoaded, itemsTotal) {
+    //console.log('Loading file: ' + url + '.\nLoaded ' + itemsLoaded + ' of ' + itemsTotal + ' files.');
+};
+
+manager.onError = function (url) {
+    //console.log('There was an error loading ' + url);
+};
+let loader = new GLTFLoader(manager);
 loader.load("./assets/player.glb", (gltf) => {
     sleighModel = gltf.scene;
     sleighModel.traverse(function (child) {
         child.castShadow = true;
+        if (child.isMesh) {
+
+        }
     });
-    document.getElementById('startButton').textContent = 'Start Game';
-    document.getElementById('startButton').disabled = false;
+
+});
+loader.load("./assets/coin.glb", (gltf) => {
+    coinModel = gltf.scene;
+    coinModel.traverse(function (child) {
+        if (child.isMesh) {
+            child.castShadow = true;
+            child.material.roughness = 0;
+            child.material.metalness = 1;
+            child.material.needsUpdate = true;
+        }
+
+    });
+});
+loader.load("./assets/drum.glb", (gltf) => {
+    drumModel = gltf.scene;
+    drumModel.scale.set(2,2,2);
+});
+loader.load("./assets/arrow_speed.glb", (gltf) => {
+    speedModel = gltf.scene;
+    speedModel.scale.set(0.01,0.01,0.01);
 });
 export class Game {
     constructor() {
         this.speed = 0.5;
-        this.jumpVelocity = 0.2;
+        this.jumpVelocity = 0.25;
         this.gravity = 0.01;
         this.isJumping = false;
         this.velocityY = 0;
@@ -28,8 +69,8 @@ export class Game {
         this.roadSegments = [];
 
         let handleKeyDown = (event) => {
-            
-          
+
+
             if (event.keyCode == 37) {
                 this.movePlayer('left');
             }
@@ -61,13 +102,14 @@ export class Game {
         this.scene = new THREE.Scene();
         this.scene.background = new THREE.Color('#050F26');
         this.scene.fog = new THREE.Fog('#050F26', 100, 150);
-        //this.scene.background=new THREE.TextureLoader().load('./assets/sky.jpg');
+        this.scene.environment = new THREE.TextureLoader().load('./assets/envMap.jpg');
+        this.scene.environment.mapping = THREE.EquirectangularReflectionMapping;
 
         this.renderer = new THREE.WebGLRenderer({ antialias: true });
         this.renderer.setPixelRatio(window.devicePixelRatio);
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.renderer.shadowMap.enabled = true;
-        this.renderer.outputColorSpace=THREE.SRGBColorSpace;
+        this.renderer.outputColorSpace = THREE.SRGBColorSpace;
         container.appendChild(this.renderer.domElement);
 
         this.camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 200);
@@ -79,8 +121,9 @@ export class Game {
         this.addMoon();
         this.addPlayer();
         this.addRoad();
-        this.placeObstacles(7);
-        this.placeEnimies(7);
+        this.placeObstacles(5);
+        this.SpeedObstacle(1);
+        this.placeEnimies(2);
 
 
 
@@ -147,10 +190,11 @@ export class Game {
             // Reposition segment if it goes behind the camera
             if (this.roadSegments[i].position.z > this.camera.position.z + this.roadSegmentHeight) {
                 this.roadSegments[i].position.z -= this.roadSegmentHeight * this.numSegments;
-                this.roadSegments[i].material.color.setHex(Math.random() * 0xffffff);
+                //this.roadSegments[i].material.color.setHex(Math.random() * 0xffffff);
             }
         }
         for (let i = 0; i < this.randomObstacles.length; i++) {
+            this.randomObstacles[i].rotation.y+=0.01;
             this.randomObstacles[i].position.z += this.speed; // Move segments forward
 
             // Reposition obstacles if it goes behind the camera
@@ -173,12 +217,18 @@ export class Game {
             let a = this.checkBox3(this.player, this.randomObstacles[i]);
             if (a) {
                 if (this.randomObstacles[i].userData.type == 'obstacle') {
-                    this.speed+=0.05;
+                 
                     this.randomObstacles[i].position.z -= this.roadSegmentHeight;
                     this.randomObstacles[i].position.x = this.getRandomInRange(-8, 8);
                     document.getElementById('score').textContent = 'Score:' + this.score++;
 
                 }
+                else if (this.randomObstacles[i].userData.type == 'speedCoin') {
+                    this.randomObstacles[i].position.z -= this.roadSegmentHeight;
+                    this.randomObstacles[i].position.x = this.getRandomInRange(-8, 8);
+                    this.speed += 0.1;
+                }
+                
                 else if (this.randomObstacles[i].userData.type == 'enimy') {
                     this.randomObstacles[i].position.z -= this.roadSegmentHeight;
                     this.stop();
@@ -238,7 +288,7 @@ export class Game {
             new THREE.SphereGeometry(2, 30, 30),
             new THREE.MeshStandardMaterial({ color: "white", emissiveIntensity: 10, emissiveColor: 'white' })
         );
-        moon.position.x = -10;
+        moon.position.x = -5;
         moon.position.y = 18;
         moon.position.z = -40;
         this.scene.add(moon);
@@ -248,7 +298,7 @@ export class Game {
         const texture = new THREE.TextureLoader().load('./assets/road.jpg');
         for (let i = 0; i < this.numSegments; i++) {
             const geometry = new THREE.PlaneGeometry(this.roadSegmentWidth, this.roadSegmentHeight);
-            const material = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, map: texture, color: Math.random() * 0xffffff });
+            const material = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, map: texture});
             const plane = new THREE.Mesh(geometry, material);
             plane.rotation.x = -Math.PI / 2; // Rotate plane to be horizontal
             plane.position.z = i * this.roadSegmentHeight;
@@ -306,8 +356,9 @@ export class Game {
     // Function to place randomObstacles on the road
     placeObstacles(numberOfObstacles) {
         for (let i = 0; i < numberOfObstacles; i++) {
-            const obstacle = this.createObstacle();
-            obstacle.position.set(this.getRandomInRange(-8, 8), 0, -this.getRandomInRange(this.roadSegmentHeight, this.roadSegmentHeight*2));
+
+            const obstacle = coinModel.clone();
+            obstacle.position.set(this.getRandomInRange(-8, 8), 0, -this.getRandomInRange(this.roadSegmentHeight, this.roadSegmentHeight * 2));
             this.scene.add(obstacle);
             obstacle.userData.type = 'obstacle';
             this.randomObstacles.push(obstacle);
@@ -315,11 +366,23 @@ export class Game {
         }
 
     }
+    SpeedObstacle(numberOfObstacles) {
+        for (let i = 0; i < numberOfObstacles; i++) {
+            //const obstacle = this.createObstacle();
+            const obstacle=speedModel.clone();
+            obstacle.position.set(this.getRandomInRange(-8, 8), 1, -this.getRandomInRange(this.roadSegmentHeight, this.roadSegmentHeight * 2));
+            this.scene.add(obstacle);
+            obstacle.userData.type = 'speedCoin';
+            this.randomObstacles.push(obstacle);
+
+        }
+    }
     placeEnimies(numberOfObstacles) {
         for (let i = 0; i < numberOfObstacles; i++) {
-            const obstacle = this.createObstacle();
-            obstacle.material.color.setHex(0xFF0000)
-            obstacle.position.set(this.getRandomInRange(-8, 8), 0, -this.getRandomInRange(this.roadSegmentHeight , this.roadSegmentHeight*2));
+            //const obstacle = this.createObstacle();
+            //obstacle.material.color.setHex(0xFF0000)
+            const obstacle=drumModel.clone();
+            obstacle.position.set(this.getRandomInRange(-8, 8), 0, -this.getRandomInRange(this.roadSegmentHeight, this.roadSegmentHeight * 2));
             obstacle.userData.type = 'enimy';
             this.scene.add(obstacle);
             this.randomObstacles.push(obstacle);
