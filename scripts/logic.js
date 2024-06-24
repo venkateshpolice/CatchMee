@@ -3,7 +3,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { gsap } from 'gsap';
 
-let sleighModel, coinModel,drumModel,speedModel;
+let sleighModel, coinModel, drumModel, speedModel;
 const manager = new THREE.LoadingManager();
 manager.onStart = function (url, itemsLoaded, itemsTotal) {
     //console.log('Started loading file: ' + url + '.\nLoaded ' + itemsLoaded + ' of ' + itemsTotal + ' files.');
@@ -47,11 +47,23 @@ loader.load("./assets/coin.glb", (gltf) => {
 });
 loader.load("./assets/drum.glb", (gltf) => {
     drumModel = gltf.scene;
-    drumModel.scale.set(2,2,2);
+    drumModel.scale.set(2, 2, 2);
 });
 loader.load("./assets/arrow_speed.glb", (gltf) => {
     speedModel = gltf.scene;
-    speedModel.scale.set(0.01,0.01,0.01);
+    speedModel.scale.set(0.01, 0.01, 0.01);
+});
+const listener = new THREE.AudioListener();
+const coinSound = new THREE.Audio(listener);
+const breakSound = new THREE.Audio(listener);
+const audioLoader = new THREE.AudioLoader();
+audioLoader.load('./assets/coin-collect.mp3', function (buffer) {
+    coinSound.setBuffer(buffer);
+    coinSound.setVolume(1);
+});
+audioLoader.load('./assets/crash.mp3', function (buffer) {
+    breakSound.setBuffer(buffer);
+    breakSound.setVolume(1);
 });
 export class Game {
     constructor() {
@@ -173,10 +185,10 @@ export class Game {
         const distance = 0.5; // Distance to move
         const duration = 0.2; // Duration of the animation in seconds
         let targetPosition = this.player.position.x + (direction === 'left' ? -distance : +distance);
-        if (targetPosition >= 3)
-            targetPosition = 3;
-        if (targetPosition <= -3)
-            targetPosition = -3;
+        if (targetPosition >= 6)
+            targetPosition = 6;
+        if (targetPosition <= -6)
+            targetPosition = -6;
         gsap.to(this.player.position, { x: targetPosition, duration: duration, ease: 'power1.out' });
 
     }
@@ -194,7 +206,8 @@ export class Game {
             }
         }
         for (let i = 0; i < this.randomObstacles.length; i++) {
-            this.randomObstacles[i].rotation.y+=0.01;
+            if (this.randomObstacles[i].userData.type == 'obstacle')
+                this.randomObstacles[i].rotation.y += 0.01;
             this.randomObstacles[i].position.z += this.speed; // Move segments forward
 
             // Reposition obstacles if it goes behind the camera
@@ -217,10 +230,11 @@ export class Game {
             let a = this.checkBox3(this.player, this.randomObstacles[i]);
             if (a) {
                 if (this.randomObstacles[i].userData.type == 'obstacle') {
-                 
+
                     this.randomObstacles[i].position.z -= this.roadSegmentHeight;
                     this.randomObstacles[i].position.x = this.getRandomInRange(-8, 8);
                     document.getElementById('score').textContent = 'Score:' + this.score++;
+                    coinSound.play();
 
                 }
                 else if (this.randomObstacles[i].userData.type == 'speedCoin') {
@@ -228,12 +242,14 @@ export class Game {
                     this.randomObstacles[i].position.x = this.getRandomInRange(-8, 8);
                     this.speed += 0.1;
                 }
-                
+
                 else if (this.randomObstacles[i].userData.type == 'enimy') {
                     this.randomObstacles[i].position.z -= this.roadSegmentHeight;
                     this.stop();
                     document.getElementById('container').innerHTML = '';
                     document.getElementById('repopup').style.visibility = 'visible';
+                    breakSound.play();
+
                 }
 
 
@@ -298,7 +314,7 @@ export class Game {
         const texture = new THREE.TextureLoader().load('./assets/road.jpg');
         for (let i = 0; i < this.numSegments; i++) {
             const geometry = new THREE.PlaneGeometry(this.roadSegmentWidth, this.roadSegmentHeight);
-            const material = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, map: texture});
+            const material = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, map: texture });
             const plane = new THREE.Mesh(geometry, material);
             plane.rotation.x = -Math.PI / 2; // Rotate plane to be horizontal
             plane.position.z = i * this.roadSegmentHeight;
@@ -358,7 +374,7 @@ export class Game {
         for (let i = 0; i < numberOfObstacles; i++) {
 
             const obstacle = coinModel.clone();
-            obstacle.position.set(this.getRandomInRange(-8, 8), 0, -this.getRandomInRange(this.roadSegmentHeight, this.roadSegmentHeight * 2));
+            obstacle.position.set(this.getRandomInRange(-8, 8), 1, -this.getRandomInRange(this.roadSegmentHeight, this.roadSegmentHeight * 2));
             this.scene.add(obstacle);
             obstacle.userData.type = 'obstacle';
             this.randomObstacles.push(obstacle);
@@ -369,7 +385,7 @@ export class Game {
     SpeedObstacle(numberOfObstacles) {
         for (let i = 0; i < numberOfObstacles; i++) {
             //const obstacle = this.createObstacle();
-            const obstacle=speedModel.clone();
+            const obstacle = speedModel.clone();
             obstacle.position.set(this.getRandomInRange(-8, 8), 1, -this.getRandomInRange(this.roadSegmentHeight, this.roadSegmentHeight * 2));
             this.scene.add(obstacle);
             obstacle.userData.type = 'speedCoin';
@@ -381,7 +397,7 @@ export class Game {
         for (let i = 0; i < numberOfObstacles; i++) {
             //const obstacle = this.createObstacle();
             //obstacle.material.color.setHex(0xFF0000)
-            const obstacle=drumModel.clone();
+            const obstacle = drumModel.clone();
             obstacle.position.set(this.getRandomInRange(-8, 8), 0, -this.getRandomInRange(this.roadSegmentHeight, this.roadSegmentHeight * 2));
             obstacle.userData.type = 'enimy';
             this.scene.add(obstacle);
